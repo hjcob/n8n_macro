@@ -1,0 +1,1732 @@
+{
+  "name": "[11LABS-VIVO] - PROCESSAMENTO DE CONVERSA",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "CONVERSATIONS",
+        "limit": 5,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "state",
+              "condition": "eq",
+              "keyValue": "intended"
+            },
+            {
+              "keyName": "product",
+              "condition": "eq",
+              "keyValue": "VIVO TOTAL"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1632,
+        -384
+      ],
+      "id": "c0970c1c-df52-4bae-880c-9fa31aa48f7e",
+      "name": "Get many rows",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cXdeWXmWkY5vzgPy",
+          "name": "SUPABASE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1824,
+        -384
+      ],
+      "id": "f840558e-a31c-47db-9033-2a55e9762f3b",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1168,
+        -384
+      ],
+      "id": "cf035781-4edf-42a0-9041-e85c9ac46406",
+      "name": "Loop Over Items1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {
+          "temperature": 0.5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -544,
+        -848
+      ],
+      "id": "8f325eb5-0ace-4558-855a-026e250da362",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "P2CyEzIlaHKQukvm",
+          "name": "OPEN AI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# Prompt Otimizado para Extração de Dados de Conversa\n\n## Contexto\nVocê é um especialista em análise de conversas de agentes de voz. Sua tarefa é extrair informações específicas de transcrições de conversa e \nretornar no formato JSON especificado, junto com métricas de confiança.\n\n## Regras de produto\nO Produto é definido é salvo no campo SKU, para saber qual é o produto você deve analisar a conversa e inferir qual produto escolhido.\nQuando você indentificar deve preencher o SKU de acordo com a regras as baixo. \npara o produto\n - Vivo Total Pro 500 MEGA + 50GB - R$160,00 => o SKU é: 4918426000063651565\n - Vivo Total Ultra 700MEGA + 70GB - R$190,00 => o SKU é: 4918426001245959554\n \n\nSe não consewguir definir o produto, deixe o campo SKU 0000000000.\n\n## Instruções Detalhadas\n\n### 1. Estrutura de Input\nA conversa será fornecida como array JSON onde cada objeto tem:\n- `role`: \"agent\" (IA) ou \"user\" (usuário) \n- `message`: mensagem\n\n### 2. Processo de Extração\n\n**Passo 1 - Leitura Completa:**\n- Leia toda a conversa sequencialmente\n- Identifique padrões de perguntas do agente e respostas do usuário\n- Marque momentos onde informações específicas são solicitadas e fornecidas\n\n**Passo 2 - Mapeamento de Dados:**\nPara cada campo solicitado, procure por:\n- Menções diretas da informação\n- Confirmações implícitas ou explícitas\n- Formatos alternativos da mesma informação\n\n**Passo 3 - Normalização:**\nAplique as regras de conversão listadas abaixo\n\n### 3. Campos a Extrair\n{\n\t  \"endereco.cep\": \"string - apenas números\",\n      \"endereco.logradouro\": \"string - nome da rua sem número\",\n      \"endereco.numimovel\": \"string - número do imóvel\",\n      \"endereco.estado\": \"string - sigla do estado\",\n      \"endereco.cidade\": \"string - nome da cidade\",\n      \"endereco.bairro\": \"string - nome do bairro\",\n      \"endereco.complemento\": \"string com complemento\",\n      \"sku\": \"string - código do produto\",     \n      \"cpf\": \"string - apenas números, sem pontos ou traços\",\n\t  \"telefone\":\"string - apenas numeros\"\n\t  \"nome\": \"string - nome completo\",\n      \"dataNascimento\": \"string - DD/MM/AAAA\",         \n      \"email\":  \"string - email válido\",\n      \"fatura.diavencimento\": \"string - dia do mês\",\n      \"dataInstalacao\": \"string - datas e períodos\"          \n}\n\n\n### 4. Regras de Normalização\n\n**Números:**\n- `\"2.199727927e+10\"` → `\"21997279270\"`\n- `\"157 830 937 93\"` → `\"15783093793\"`\n- `\"21, 715, 410\"` → `\"21715410\"`\n\n**CPF**\n- Não encontrou CPF, preencha com 0\n\n**CEP**\n- Não encontrou CEP, preencha com 0\n\n**telefone**\n- Não encontrou telefone, preencha com 0\n\n\n**Endereços:**\n- `\"Rua Morundu, 166\"` → logradouro: `\"Rua Morundu\"`, numero: `\"166\"`\n- Complemento `\"Não tem\"` → `null`\n\n**Emails:**\n- `\"João Silva arroba gmail.com\"` → `\"joao.silva@gmail.com\"`\n- Remover acentos e converter para minúsculas\n- analise o formato do emmail, caso esteja em formato incorreto, normalize o email colcando um @teste.com para que ele tenha o formato válido\n- nunca deixe o campo email em nulo ou vazio, coloque sememail@teste.com\n\n**Datas Relativas:**\n- `\"amanhã à tarde\"` → calcular data real baseada no contexto\n- `\"depois de amanhã\"` → calcular próximo dia\n\n**Estados:**\n- `\"São Paulo\"` → `\"SP\"`\n- `\"Rio de Janeiro\"` → `\"RJ\"`\n\n**Confirmações:**\n- Usuário aceita proposta/finaliza compra → `contrato.checked: \"true\"`\n- Agente confirma dados e usuário concorda → `confirmou.endereco: \"true\"`\n\n### 5. Critérios de Confiança\n\n**Alta Confiança (90-100%):**\n- Informação explicitamente mencionada\n- Confirmação clara do usuário\n- Dados técnicos precisos (CEP, CPF e telefone)\n- atente-se para o criterio dos campos:\n - CPF - > numérico de 11 dígitos\n - Telefone - numérico com 11 dígitos\n - CEP -> numérico com 5 dígitos\n\n**Média Confiança (70-89%):**\n- Informação mencionada mas sem confirmação\n- Conversões de formato necessárias\n- Dados inferidos do contexto\n\n**Baixa Confiança (50-69%):**\n- Informação ambígua\n- Múltiplas interpretações possíveis\n- Inferências baseadas em nome/contexto\n\n**Sem Confiança (0-49%):**\n- Informação não mencionada\n- Pura especulação necessária\n\n- Você deve analisar a resposta e verificar todos os campos\nque foram preenchidos. se os mesmo foram preenchiodos corretamente.\n- o numero de telefone deve ter o \n\n\n### 6. Formato de Resposta Final\n\n\n{\n  \"dados_extraidos\": {\t\n      \"endereco.cep\": \"string - apenas números\",\n      \"endereco.logradouro\": \"string - nome da rua sem número\",\n      \"endereco.numimovel\": \"string - número do imóvel\",\n      \"endereco.estado\": \"string - sigla do estado\",\n      \"endereco.cidade\": \"string - nome da cidade\",\n      \"endereco.bairro\": \"string - nome do bairro\",     \n      \"endereco.complemento\": \"string com complemento\",\n      \"sku\": \"string - código do produto\",\n      \"modalidade\": \"portabolidade\",\n      \"cpf\": \"string - apenas números, sem pontos ou traços\",\n\t  \"telefone\":\"string - apenas numeros\"\n\t  \"nome\": \"string - nome completo\",\n      \"dataNascimento\": \"string - DD/MM/AAAA\",        \n      \"email\":  \"string - email válido\",\n      \"fatura.diavencimento\": \"string - dia do mês\",\n      \"dataInstalacao\": \"string - datas e períodos\"\n  },\n  \"metricas_confianca\": {\n    \"confianca_geral\": 85,\n    \"campos_alta_confianca\": [\n      \"campo1\",\n      \"campo2\"\n    ],\n    \"campos_media_confianca\": [\n      \"campo3\"\n    ],\n    \"campos_baixa_confianca\": [\n      \"campo4\"\n    ],\n    \"campos_nao_encontrados\": [\n      \"campo5\",\n      \"campo6\"\n    ],\n    \"observacoes\": \"Detalhes inferências realizadas\",\n    \"conversationId\": {{ $json.id }}\n  }\n}\n\n### 7. Princípios Importantes\n\n- **Conservadorismo**: Prefira `null` a suposições\n- **Transparência**: Documente todas as conversões nas observações\n- **Consistência**: Use sempre os mesmos critérios de confiança\n- **Precisão**: Mantenha formato exato dos dados extraídos\n- **Formato de Saída**: sempre retorne uma string json válida sem nenhuma formatação\n- **Preenchimento do campo Observações**: Apenas preencha no campo observações as informações e inferências dos dados que não foram extraídos.\n\n\n### 8. Exemplo de Aplicação\n\n**Input:** Conversa onde usuário diz \"Meu nome é João, 11987654321\" para pergunta sobre nome e WhatsApp.\n\n**Output:**\n```json\n{\n  \"dados_extraidos\": {\n    \"nome\": \"João\",\n    \"endereco.cep\": 0,\n    // ... outros campos\n  },\n  \"metricas_confianca\": {\n    \"confianca_geral\": 45,\n    \"campos_alta_confianca\": [\"nome\"],\n    \"campos_nao_encontrados\": [\"endereco.cep\", ...],\n    \"observacoes\": \"Nome extraído diretamente da resposta do usuário. Telefone mencionado mas não foi solicitado no formato dos campos.\"\n  }\n}\n```\n### 9. Análise de Confiança\n\n\n### 10. Segue a conversa\n{{ JSON.stringify($('Loop Over Items1').first().json.transcript) }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -544,
+        -1104
+      ],
+      "id": "9c8db718-4e4b-4e16-b259-dce4ab33f72e",
+      "name": "VIVO TOTAL",
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "content": "## VIVO TOTAL",
+        "height": 464,
+        "width": 640,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -656,
+        -1200
+      ],
+      "typeVersion": 1,
+      "id": "5e64bfcc-02fd-4a35-814a-5d85515543db",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## VIVO FIBRA\n",
+        "height": 496,
+        "width": 944,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -688,
+        1216
+      ],
+      "typeVersion": 1,
+      "id": "0561fdb1-2d89-45b7-963b-f8e2af6be753",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "url": "=https://hub.automatuslab.com/CPF/30991a61-1429-45fb-9057-4a34e072d813/{{ $('IA_RESULT_CHECK').item.json.processData.dados_extraidos.cpf }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "30991a61-1429-45fb-9057-4a34e072d813"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -256,
+        -432
+      ],
+      "id": "0be15c10-ebbd-46db-a34f-bb8652f979fb",
+      "name": "CONSULTA CPF"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "11cf2e7b-be58-4ab6-a266-821dde0b68e0",
+              "name": "CPF_NOME",
+              "value": "={{ $('CONSULTA CPF').item.json.nome }}",
+              "type": "string"
+            },
+            {
+              "id": "51ecf484-ac70-4957-977d-423c0253c4cc",
+              "name": "CPF_NASCIMENTO",
+              "value": "={{ $json.nascimento }}",
+              "type": "string"
+            },
+            {
+              "id": "bc5d02be-d36c-4fa1-a860-0fdd27015506",
+              "name": "CPF_MAE",
+              "value": "={{ $('CONSULTA CPF').item.json.mae }}",
+              "type": "string"
+            },
+            {
+              "id": "d3493c21-758a-4f91-987e-6ad20e2271a0",
+              "name": "CPF_STATUS",
+              "value": "=success",
+              "type": "string"
+            },
+            {
+              "id": "fb2d1d60-e220-4dae-a71f-42e4ac294141",
+              "name": "CPF",
+              "value": "={{ $('IA_RESULT_CHECK').item.json.processData.dados_extraidos.cpf }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        -560
+      ],
+      "id": "e1c021e1-354c-4378-841e-93f8ce113f06",
+      "name": "Atualiza Dados CPF"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d27a6b09-b15b-451d-a460-6bd3727187bf",
+              "leftValue": "={{ $json.erro }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -32,
+        -432
+      ],
+      "id": "46119beb-df4b-4bef-8db8-95553da30fd8",
+      "name": "Check CPF"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "\n  {\n    \"CPF_NOME\": \"\",\n    \"CPF_NASCIMENTO\": \"\",\n    \"CPF_MAE\": \"\",\n    \"CPF_STATUS\": \"error\",\n    \"CPF\":\"0\"\n    \n  }\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        -304
+      ],
+      "id": "7e048ccf-18be-4d73-bba0-8d88c2bd7455",
+      "name": "Atualiza dados CPF Erro"
+    },
+    {
+      "parameters": {
+        "description": "Use esta ferramenta para pensar na sua resposta e conferir se está tudo correto de acordo com o prompt"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        -896
+      ],
+      "id": "3849dcc7-9fd1-4537-8f11-27ae8f74c4e0",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "99a030b0-0eff-4740-b46e-0c1a1bcab5cb",
+              "name": "transcript",
+              "value": "={{ $json.transcript }}",
+              "type": "array"
+            },
+            {
+              "id": "f394530f-1742-4d7c-9433-79b1eaa985c4",
+              "name": "conversationId",
+              "value": "={{ $json.conversationId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1392,
+        -384
+      ],
+      "id": "029afcff-fb5e-42b6-822c-2f8b61ab451b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://apimanager-prod.azurewebsites.net/data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "*/*"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -672,
+        -432
+      ],
+      "id": "62ed82ea-b1f1-4dfb-838b-d361559f2c9b",
+      "name": "CRIA LEAD"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "26e98e21-347d-4ca2-bdb9-860ff567399b",
+              "name": "data.orderId",
+              "value": "={{ $json.data.orderId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -448,
+        -432
+      ],
+      "id": "7c419eb1-d053-497d-8358-aca7ac090b3f",
+      "name": "Obtem Order Id"
+    },
+    {
+      "parameters": {
+        "jsCode": "function processarJSON(jsonString) {\n    try {\n        // Parse do JSON string\n        const data = JSON.parse(jsonString);\n        \n        // Lista das propriedades que devem ser procuradas\n        const propriedadesProcuradas = [\n            'endereco.cep',\n            'endereco.logradouro',\n            'endereco.numimovel',\n            'endereco.estado',\n            'endereco.cidade',\n            'endereco.bairro',\n            'endereco.complemento',\n            'sku',\n            'modalidade',\n            'cpf',\n            'telefone',\n            'nome',\n            'dataNascimento',\n            'email',\n            'fatura.diavencimento',\n            'dataInstalacao'\n        ];\n        \n        // Array para armazenar os resultados\n        const datas = [];\n        \n        // Verificar se existe a seção dados_extraidos\n        if (data.dados_extraidos) {\n            // Iterar através das propriedades procuradas\n            propriedadesProcuradas.forEach(propriedade => {\n                const valor = data.dados_extraidos[propriedade];\n                \n                // Se a propriedade existe e tem valor válido, adicionar ao array\n                if (valor !== undefined && valor !== null && valor !== '') {\n                    datas.push({\n                        name: propriedade,\n                        value: valor.toString()\n                    });\n                }\n            });\n\n              datas.push({\n                        name: \"fatura.tipofatura\",\n                        value: \"Fatura Digital E-mail\"\n                    },\n                    {\n                        name: \"telefoneSecundario\",\n                        value: $('Get many rows').first().json.telefoneSecundario\n                    }, \n                    {\n                       \"name\": \"layout.id\",\n                       \"value\": \"4918426000000091055\"\n                     }\n                         \n      );\n        }\n        \n        // Retornar o resultado no formato solicitado\n        return {\"body\":{\n            orderId: \"\",\n            orderRef: \"\",\n            projectId: \"4918426000063651364-VOZ\",\n            projectType: \"IA Voz\",\n            productType: \"TOTAL\",\n            sellType: \"\",\n            status: \"FluxoOnline.Lead\",\n            automation: \"\",\n            datas: datas\n        }};\n        \n    } catch (error) {\n        console.error('Erro ao processar JSON:', error);\n        return {\n            orderId: \"\",\n            orderRef: \"\",\n            projectId: \"4918426000063651364-VOZ\",\n            projectType: \"IA Voz\",\n            productType: \"TOTAL\",\n            sellType: \"\",\n            status: \"FluxoOnline.Lead\",\n            automation: \"\",\n            datas: [],\n            erro: 'JSON inválido ou erro no processamento'\n        };\n    }\n}\n\nconst resultado = processarJSON($('VIVO TOTAL').first().json.output);\nreturn resultado"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        -864
+      ],
+      "id": "62ff07db-ee48-472d-ad80-62d2b35e4704",
+      "name": "Normaliza API Manager"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d27a6b09-b15b-451d-a460-6bd3727187bf",
+              "leftValue": "={{ $json.mensagemErro }}",
+              "rightValue": " 'CEP Invalido'",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        80
+      ],
+      "id": "6acff700-9000-41e2-b320-16cf0025a88a",
+      "name": "Check_CEP",
+      "alwaysOutputData": false,
+      "notesInFlow": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "\n{\n\"cep\": \"\",\n\"logradouro\": \"\",\n\"complemento\": \"\",\n\"numImovel\":\"\",\n\"bairro\": \"\",\n\"localidade\": \"\",\n\"uf\": \"\",\n\"cep_status\": \"error\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        160
+      ],
+      "id": "c803586b-93a6-4fc8-ab2e-a7e046445a25",
+      "name": "CEP_STATUS_ERROR",
+      "alwaysOutputData": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n    \"cep\": \"{{ $json.cep }}\",\n    \"logradouro\": \"{{ $json.logradouro }}\",\n    \"complemento\": \"{{ $json.complemento }}\",\n    \"numImovel\": \"{{ $('IA_RESULT_CHECK').item.json.processData.dados_extraidos['endereco.numimovel'] }}\",\n    \"bairro\": \"{{ $json.bairro }}\",\n    \"localidade\": \"{{ $json.localidade }}\",\n    \"uf\": \"{{ $json.uf }}\",\n    \"cep_status\": \"success\"    \n  }\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        -16
+      ],
+      "id": "ef37dcbe-13e7-4eb3-a507-2aa6624dbc53",
+      "name": "CEP_STATUS_SUCESSO",
+      "alwaysOutputData": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -16,
+        64
+      ],
+      "id": "ee14d5b0-8f52-4cf0-a2da-cf4263a129fd",
+      "name": "MERGE_CEP"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        432,
+        -432
+      ],
+      "id": "acc9819e-9131-43db-8647-686924c7233e",
+      "name": "MERGE_CPF"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Entrada: string JSON\nconst inputString = $input.first().json.output\n// Transformar string em JSON\ntry {\n  const processData = JSON.parse(inputString);\n  return [{ json: {processData} }];\n} catch (error) {\n  throw new Error(\"Erro ao converter a string para JSON: \" + error.message);\n}\n\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -1104
+      ],
+      "id": "877d7926-fdc9-4cd9-93c0-9f0365faac4a",
+      "name": "IA_RESULT_CHECK"
+    },
+    {
+      "parameters": {
+        "url": "=https://hub.automatuslab.com/CEP/30991a61-1429-45fb-9057-4a34e072d813/{{ $('IA_RESULT_CHECK').item.json.processData.dados_extraidos['endereco.cep'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -656,
+        80
+      ],
+      "id": "8de11028-6220-4e91-9c28-eb8e152be254",
+      "name": "CONSULTA_CEP"
+    },
+    {
+      "parameters": {
+        "url": "=https://hub.macro.id/whatsapp/check/{{ $('IA_RESULT_CHECK').item.json.processData.dados_extraidos.telefone }}/5vNRtQeVZ1VZ ",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "*/*"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        192
+      ],
+      "id": "fba25423-a27e-4275-870b-62c45b3efe2d",
+      "name": "CHECK_WPP_PRINCIPAL_PHONE"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aa40850a-2496-461d-b2c3-48be9cf7959c",
+              "leftValue": "={{ $json.hasWhatsapp }}",
+              "rightValue": "=checking",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        192
+      ],
+      "id": "a6b85773-ac71-476a-9331-e27f83d7cb1b",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        544
+      ],
+      "id": "a220fc21-32d0-4ffc-8bcd-e253480bd383",
+      "name": "Wait",
+      "webhookId": "2ffc48be-4bbc-493b-b89d-b5b26f4bfaa6",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "87309a8e-b262-4736-bf75-8a42b874ee51",
+              "name": "hasWhatsapp_principal",
+              "value": "={{ $json.hasWhatsapp }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        96
+      ],
+      "id": "27a063fa-ce00-4945-9bcb-df555bd77351",
+      "name": "wpp_pricipal_result"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1456,
+        0
+      ],
+      "id": "1066ea77-613c-4269-a669-5bb50a887720",
+      "name": "MERGE_WPP_PRINCIPAL"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "87309a8e-b262-4736-bf75-8a42b874ee51",
+              "name": "hasWhatsapp_principal",
+              "value": "=ERROR",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        -96
+      ],
+      "id": "675008e9-b073-47e0-81f6-f0150957afd7",
+      "name": "WPP_PRINCIPAL_ERROR"
+    },
+    {
+      "parameters": {
+        "jsCode": "const TOTAL_CALLS = 3;\n\nreturn Array.from({ length: TOTAL_CALLS }, (_, i) => ({\n  json: { attempt_wpp_principal: i + 1 }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        64
+      ],
+      "id": "712fa000-4316-4c09-9a96-6f17f9cb894f",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        400,
+        -16
+      ],
+      "id": "5af36ccf-1b2c-44df-84e7-9c0e017047e9",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aa40850a-2496-461d-b2c3-48be9cf7959c",
+              "leftValue": "={{ $json.hasWhatsapp }}",
+              "rightValue": "=checking",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2416,
+        16
+      ],
+      "id": "90d8393c-98dd-4946-9814-271715f0b69b",
+      "name": "If1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2224,
+        272
+      ],
+      "id": "033757c0-8880-4d25-98ea-fbc49ec0b060",
+      "name": "Wait1",
+      "webhookId": "2ffc48be-4bbc-493b-b89d-b5b26f4bfaa6",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "87309a8e-b262-4736-bf75-8a42b874ee51",
+              "name": "hasWhatsapp_secondary",
+              "value": "=ERROR",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2720,
+        -192
+      ],
+      "id": "bc1c9d5d-7d52-4708-bb6c-6049ba13079c",
+      "name": "WPP_PRINCIPAL_ERROR1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const TOTAL_CALLS = 3;\n\nreturn Array.from({ length: TOTAL_CALLS }, (_, i) => ({\n  json: { attempt_wpp_principal: i + 1 }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        16
+      ],
+      "id": "82e527b5-8e63-49e0-859b-0e53ea41daa9",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1952,
+        -64
+      ],
+      "id": "37d5d499-a10b-4322-a9dd-f9a24d16e370",
+      "name": "Loop Over Items2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "87309a8e-b262-4736-bf75-8a42b874ee51",
+              "name": "hasWhatsapp_secondary",
+              "value": "={{ $json.hasWhatsapp }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2736,
+        48
+      ],
+      "id": "34415c0f-250c-4295-a125-f18beb2a9070",
+      "name": "wpp_secondary_result"
+    },
+    {
+      "parameters": {
+        "url": "=https://hub.macro.id/whatsapp/check/{{ $('Get many rows').item.json.telefoneSecundario }}/5vNRtQeVZ1VZ ",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "*/*"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2224,
+        0
+      ],
+      "id": "8ba749dc-2657-4559-8816-bb12b762ea9e",
+      "name": "CHECK_WPP_SECUNDARY_PHONE"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3008,
+        -48
+      ],
+      "id": "a253ddd8-4c89-46b4-8da9-a08253d2c769",
+      "name": "MERGE_WPP_SECONDARY"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3200,
+        -48
+      ],
+      "id": "b745d678-9882-483f-b004-c29b008d789d",
+      "name": "Wait2",
+      "webhookId": "bed58b0d-3f55-4ee1-be92-79c00e631d6f"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# Prompt Otimizado para Extração de Dados de Conversa\n\n## Contexto\nVocê é um especialista em análise de conversas de agentes de voz. Sua tarefa é extrair informações específicas de transcrições de conversa e retornar no formato JSON especificado, junto com métricas de confiança.\n\n## Regras de produto\nO Produto é definido é salvo no campo SKU, para saber qual é o produto você deve analisar a conversa e inferir qual produto escolhido.\nQuando você indentificar deve preencher o SKU de acordo com a regras as baixo. \npara o produto\n - 600Mega - R$100 => o SKU é: 4918426000629515444\n - 700Mega - R$150 => o SKU é: 4918426000014436145\n - 1Giga - R$300 => o SKU é: 4918426000014436141\n\nSe não consewguir definir o produto, deixe o campo SKU vazio.\n\n## Instruções Detalhadas\n\n### 1. Estrutura de Input\nA conversa será fornecida como array JSON onde cada objeto tem:\n- `role`: \"agent\" (IA) ou \"user\" (usuário) \n- `message`: mensagem\n\n### 2. Processo de Extração\n\n**Passo 1 - Leitura Completa:**\n- Leia toda a conversa sequencialmente\n- Identifique padrões de perguntas do agente e respostas do usuário\n- Marque momentos onde informações específicas são solicitadas e fornecidas\n\n**Passo 2 - Mapeamento de Dados:**\nPara cada campo solicitado, procure por:\n- Menções diretas da informação\n- Confirmações implícitas ou explícitas\n- Formatos alternativos da mesma informação\n\n**Passo 3 - Normalização:**\nAplique as regras de conversão listadas abaixo\n\n### 3. Campos a Extrair\n\n\n{\n  \"endereco.cep\": \"string - apenas números\",\n  \"endereco.logradouro\": \"string - nome da rua sem número\",\n  \"endereco.numimovel\": \"string - número do imóvel\",\n  \"endereco.estado\": \"string - sigla do estado\",\n  \"endereco.cidade\": \"string - nome da cidade\",\n  \"endereco.bairro\": \"string - nome do bairro\",\n  \"confirmou.endereco\": \"string - 'true' ou 'false'\",\n  \"endereco.complemento\": \"string - complemento ou null se não há\",\n  \"sku\": \"string - código do produto\",\n  \"cpf\": \"string - apenas números, sem pontos ou traços\",\n  \"nome\": \"string - nome completo\",\n  \"dataNascimento\": \"string - DD/MM/AAAA\",\n  \"nomeMae\": \"string - nome da mãe\",\n  \"sexo\": \"string - 'MASCULINO' ou 'FEMININO'\",\n  \"email\": \"string - email válido\",\n  \"fatura.tipofatura\": \"string - 'Impressa' ou 'Digital'\",\n  \"fatura.diavencimento\": \"string - dia do mês\",\n  \"dataInstalacao\": \"string - datas e períodos\",\n  \"contrato.checked\": \"string - 'true' ou 'false'\"\n}\n\n\n### 4. Regras de Normalização\n\n**Números:**\n- `\"2.199727927e+10\"` → `\"21997279270\"`\n- `\"157 830 937 93\"` → `\"15783093793\"`\n- `\"21, 715, 410\"` → `\"21715410\"`\n\n**Endereços:**\n- `\"Rua Morundu, 166\"` → logradouro: `\"Rua Morundu\"`, numero: `\"166\"`\n- Complemento `\"Não tem\"` → `null`\n\n**Emails:**\n- `\"João Silva arroba gmail.com\"` → `\"joao.silva@gmail.com\"`\n- Remover acentos e converter para minúsculas\n\n**Datas Relativas:**\n- `\"amanhã à tarde\"` → calcular data real baseada no contexto\n- `\"depois de amanhã\"` → calcular próximo dia\n\n**Estados:**\n- `\"São Paulo\"` → `\"SP\"`\n- `\"Rio de Janeiro\"` → `\"RJ\"`\n\n**Confirmações:**\n- Usuário aceita proposta/finaliza compra → `contrato.checked: \"true\"`\n- Agente confirma dados e usuário concorda → `confirmou.endereco: \"true\"`\n\n### 5. Critérios de Confiança\n\n**Alta Confiança (90-100%):**\n- Informação explicitamente mencionada\n- Confirmação clara do usuário\n- Dados técnicos precisos (CEP, CPF)\n\n**Média Confiança (70-89%):**\n- Informação mencionada mas sem confirmação\n- Conversões de formato necessárias\n- Dados inferidos do contexto\n\n**Baixa Confiança (50-69%):**\n- Informação ambígua\n- Múltiplas interpretações possíveis\n- Inferências baseadas em nome/contexto\n\n**Sem Confiança (0-49%):**\n- Informação não mencionada\n- Pura especulação necessária\n\n### 6. Formato de Resposta Final\n\n\n{\n  \"dados_extraidos\": {\n    \"endereco.cep\": \"string - apenas números\",\n    \"endereco.logradouro\": \"string - nome da rua sem número\",\n    \"endereco.numimovel\": \"string - número do imóvel\",\n    \"endereco.estado\": \"string - sigla do estado\",\n    \"endereco.cidade\": \"string - nome da cidade\",\n    \"endereco.bairro\": \"string - nome do bairro\",\n    \"confirmou.endereco\": \"string - 'true' ou 'false'\",\n    \"endereco.complemento\": \"string - complemento ou null se não há\",\n    \"sku\": \"string - código do produto\",\n    \"cpf\": \"string - apenas números, sem pontos ou traços\",\n    \"nome\": \"string - nome completo\",\n    \"dataNascimento\": \"string - DD/MM/AAAA\",\n    \"nomeMae\": \"string - nome da mãe\",\n    \"sexo\": \"string - 'MASCULINO' ou 'FEMININO'\",\n    \"email\": \"string - email válido\",\n    \"fatura.tipofatura\": \"string - 'Impressa' ou 'Digital'\",\n    \"fatura.diavencimento\": \"string - dia do mês\",\n    \"dataInstalacao\": \"string - datas e períodos\",\n    \"contrato.checked\": \"string - 'true' ou 'false'\"\n  },\n  \"metricas_confianca\": {\n    \"confianca_geral\": 85,\n    \"campos_alta_confianca\": [\n      \"campo1\",\n      \"campo2\"\n    ],\n    \"campos_media_confianca\": [\n      \"campo3\"\n    ],\n    \"campos_baixa_confianca\": [\n      \"campo4\"\n    ],\n    \"campos_nao_encontrados\": [\n      \"campo5\",\n      \"campo6\"\n    ],\n    \"observacoes\": \"Detalhes inferências realizadas\"\n  }\n}\n\n### 7. Princípios Importantes\n\n- **Conservadorismo**: Prefira `null` a suposições\n- **Transparência**: Documente todas as conversões nas observações\n- **Consistência**: Use sempre os mesmos critérios de confiança\n- **Precisão**: Mantenha formato exato dos dados extraídos\n- **Formato de Saída**: sempre retorne uma string json válida sem nenhuma formatação\n- **Preenchimento do campo Observações**: Apenas preencha no campo observações as informações e inferências dos dados que não foram extraídos.\n\n\n### 8. Exemplo de Aplicação\n\n**Input:** Conversa onde usuário diz \"Meu nome é João, 11987654321\" para pergunta sobre nome e WhatsApp.\n\n**Output:**\n```json\n{\n  \"dados_extraidos\": {\n    \"nome\": \"João\",\n    \"endereco.cep\": null,\n    // ... outros campos\n  },\n  \"metricas_confianca\": {\n    \"confianca_geral\": 45,\n    \"campos_alta_confianca\": [\"nome\"],\n    \"campos_nao_encontrados\": [\"endereco.cep\", ...],\n    \"observacoes\": \"Nome extraído diretamente da resposta do usuário. Telefone mencionado mas não foi solicitado no formato dos campos.\"\n  }\n}\n```\n\n### 9. Segue a conversa\n{{ JSON.stringify( $json.transcript ) }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -640,
+        1296
+      ],
+      "id": "9989e28c-8c2d-467d-9bef-d3924a7e8a53",
+      "name": "VIVO FIBRA",
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -16,
+        1504
+      ],
+      "id": "43b85dad-a321-4a10-8c5e-421d8baa7d0f",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -272,
+        1536
+      ],
+      "id": "369ed481-5cc0-412a-bc90-11e83912290d",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "P2CyEzIlaHKQukvm",
+          "name": "OPEN AI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "=do texto a seguir:  {{ $json.output }}\ntransforme no json abaixo",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"endereco.cep\": \"string - apenas números\",\n  \"endereco.logradouro\": \"string - nome da rua sem número\",\n  \"endereco.numimovel\": \"string - número do imóvel\",\n  \"endereco.estado\": \"string - sigla do estado\",\n  \"endereco.cidade\": \"string - nome da cidade\",\n  \"endereco.bairro\": \"string - nome do bairro\",\n  \"confirmou.endereco\": \"string - 'true' ou 'false'\",\n  \"endereco.complemento\": \"string - complemento ou null se não há\",\n  \"sku\": \"string - código do produto\",\n  \"cpf\": \"string - apenas números, sem pontos ou traços\",\n  \"nome\": \"string - nome completo\",\n  \"dataNascimento\": \"string - DD/MM/AAAA\",\n  \"nomeMae\": \"string - nome da mãe\",\n  \"sexo\": \"string - 'MASCULINO' ou 'FEMININO'\",\n  \"email\": \"string - email válido\",\n  \"fatura.tipofatura\": \"string - 'Impressa' ou 'Digital'\",\n  \"fatura.diavencimento\": \"string - dia do mês\",\n  \"dataInstalacao\": \"string - datas e períodos\",\n  \"contrato.checked\": \"string - 'true' ou 'false'\",\n  \"observacoes\":\"preencha com os dados das observações\"\n}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        1296
+      ],
+      "id": "21e8addf-0b76-4b5a-9b32-74886fe41fc5",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -624,
+        1520
+      ],
+      "id": "bfaaf863-93ae-4959-88e1-43b9170f4669",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "P2CyEzIlaHKQukvm",
+          "name": "OPEN AI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://apimanager-prod.azurewebsites.net/data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "*/*"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4272,
+        496
+      ],
+      "id": "f17f12d3-dc4f-486a-9956-169d993be3d7",
+      "name": "CRIA LEAD2"
+    },
+    {
+      "parameters": {
+        "jsCode": "function processarJSON() {\n\n    try {\n    \n     // Retornar o resultado no formato solicitado\n        return {\"body\":{\n            orderId: $('CRIA LEAD').first().json.data.orderId,\n            orderRef: \"\",\n            projectId: \"4918426000063651364-VOZ\",\n            projectType: \"IA Voz\",\n            productType: \"TOTAL\",\n            sellType: \"\",\n            status: \"FluxoOnline.AtualizaDadosNotas\",\n            automation: \"\",\n            datas:  [{\"name\": \"notas\", \"value\": JSON.stringify($input.first().json.body.datasNotes)}]\n        }};\n        \n    } catch (error) {\n        console.error('Erro ao processar JSON:', error);\n        return {\n            orderId: \"\",\n            orderRef: \"\",\n            projectId: \"4918426000063651364-VOZ\",\n            projectType: \"IA Voz\",\n            productType: \"TOTAL\",\n            sellType: \"\",\n            status: \"FluxoOnline.AtualizaDados\",\n            automation: \"\",\n            datas: [],\n            erro: 'JSON inválido ou erro no processamento'\n        };\n    }\n}\n\nreturn processarJSON()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3584,
+        -48
+      ],
+      "id": "1d8b6c7c-874f-4d82-820b-3059db0e920d",
+      "name": "normaliza notas"
+    },
+    {
+      "parameters": {
+        "jsCode": "function processarJSON() {\n  const datas = []\n    try {\n        // Parse do JSON string\n        \n  \n     // Retornar o resultado no formato solicitado\n        return {\"body\":{\n            orderId: $('CRIA LEAD').first().json.data.orderId,\n            orderRef: \"\",\n            projectId: \"4918426000063651364-VOZ\",\n            projectType: \"IA Voz\",\n            productType: \"TOTAL\",\n            sellType: \"\",\n            status: \"FluxoOnline.concluido\",\n            automation: \"\",\n            datas: $('dados normalizados').first().json.body.datas\n        }};\n        \n    } catch (error) {\n        console.error('Erro ao processar JSON:', error);\n        return {\n            orderId: \"\",\n            orderRef: \"\",\n            projectId: \"4918426000063651364-VOZ\",\n            projectType: \"IA Voz\",\n            productType: \"TOTAL\",\n            sellType: \"\",\n            status: \"FluxoOnline.concluido\",\n            automation: \"\",\n            datas: [],\n            erro: 'JSON inválido ou erro no processamento'\n        };\n    }\n}\n\nreturn processarJSON()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        -48
+      ],
+      "id": "0bdf8eef-7e1e-46a3-9a43-30d772f73c1d",
+      "name": "normaliza final"
+    },
+    {
+      "parameters": {
+        "jsCode": "function processarJSON() {\n    const datas = [];\n    const datasNotes = [];\n    try {\n\n      ///VERIFICA CEP\n      if($('MERGE_CEP').first().json.cep_status === \"success\")\n       {\n          datas.push(\n                      {\n                          name: \"endereco.cep\",\n                          value: $('MERGE_CEP').first().json.cep\n                      },\n                      {\n                          name: \"endereco.logradouro\",\n                          value: $('MERGE_CEP').first().json.logradouro\n                      },\n                      {\n                          name: \"endereco.numimovel\",\n                          value: $('MERGE_CEP').first().json.numImovel\n                      },\n                      {\n                          name: \"endereco.estado\",\n                          value: $('MERGE_CEP').first().json.uf\n                      },\n                      {\n                          name: \"endereco.cidade\",\n                          value: $('MERGE_CEP').first().json.localidade\n                      },\n                      {\n                          name: \"endereco.bairro\",\n                          value: $('MERGE_CEP').first().json.bairro\n                      },\n                    );\n       }\n      else\n       {\n           datasNotes.push(\n              {\n                title: \"executou consulta cep\",\n                content: \"CEP INVÁLIDO\"\n              },\n           );\n       }       \n\n      ///VERIFICA CPF\n      if($('MERGE_CPF').first().json.CPF_STATUS===\"success\")\n      {\n        datas.push(\n                      {\n                          name: \"cpf\",\n                          value: $('MERGE_CPF').first().json.CPF\n                      },\n                      {\n                          name: \"nome\",\n                          value: $('MERGE_CPF').first.json.CPF_NOME\n                      },\n                      {\n                          name: \"nomeMae\",\n                          value: $('MERGE_CPF').first.json.CPF_MAE\n                      },\n                      {\n                          name: \"dataNascimento\",\n                          value: $('MERGE_CPF').first.json.CPF_NASCIMENTO\n                      }\n          );\n      }\n      else\n      {\n          datasNotes.push(\n              {\n                title: \"executou consulta CPF\",\n                content: \"CPF INVÁLIDO\"\n              },\n           );\n      }\n\n     //Adiciona cliente whatsapp\n      datas.push(\n              {\n                          name: \"cliente.whatsapp\",\n                          value: $('MERGE_WPP_PRINCIPAL').first().json.hasWhatsapp_principal\n                      }\n           );\n      ///PROCESSA NOTES IA\n       datasNotes.push(\n              {\n                title: \"Retorno IA\",\n                content: $('IA_RESULT_CHECK').item.json.processData.metricas_confianca.observacoes\n              },\n              {\n                title: \"Telefone Secundário Tem WPP\",\n                content:$input.first().json.hasWhatsapp_secondary \n              },\n              {\n                title: \"Id da Conversa\",\n                content: $('11LabsConversation').first().json.id\n              }\n           );\n      \n      return {\"body\":{ \n            datas: datas,\n            datasNotes: datasNotes\n        }};\n        \n    } catch (error) {\n        \n        return {\n            \"body\":{ \n                datas: datas,\n                datasNotes: datasNotes\n            }\n        }; \n    } \n}\n\nreturn processarJSON()\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3392,
+        -48
+      ],
+      "id": "bd5ff0a6-8e32-4386-b6c6-1997cffd7135",
+      "name": "dados normalizados"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://apimanager-prod.azurewebsites.net/data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "*/*"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3776,
+        -48
+      ],
+      "id": "9b852acf-afe7-45d2-a6be-e22a416662b2",
+      "name": "atualiza notas"
+    },
+    {
+      "parameters": {
+        "url": "https://api.elevenlabs.io/v1/convai/conversations/conv_9401k5hpzdbtfam840b76hp3wbce/audio",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "sk_81943a69fbe3d20130314878626d1c8618112d0c3a218c06"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        336,
+        1392
+      ],
+      "id": "23ba81bf-590f-464b-a969-566410b16348",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f394530f-1742-4d7c-9433-79b1eaa985c4",
+              "name": "id",
+              "value": "={{ $json.conversationId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -960,
+        -544
+      ],
+      "id": "17f9f33a-fe47-4838-a51a-8ca98a9cf04b",
+      "name": "11LabsConversation"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "CONVERSATIONS",
+        "filterType": "string",
+        "filterString": "=conversationId=eq.{{ $('Loop Over Items1').first().json.conversationId }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "state",
+              "fieldValue": "processed"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4528,
+        704
+      ],
+      "id": "22412c08-cf07-4f0a-a70c-096ccedadb57",
+      "name": "ATUALIZA SP",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cXdeWXmWkY5vzgPy",
+          "name": "SUPABASE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aa40850a-2496-461d-b2c3-48be9cf7959c",
+              "leftValue": "={{ $('IA_RESULT_CHECK').item.json.processData.dados_extraidos.telefone }}",
+              "rightValue": "=0",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        224
+      ],
+      "id": "a24882a7-b0c4-4217-bba9-c51e6751b156",
+      "name": "If2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "11LabsConversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "VIVO TOTAL",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VIVO TOTAL": {
+      "main": [
+        [
+          {
+            "node": "IA_RESULT_CHECK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONSULTA CPF": {
+      "main": [
+        [
+          {
+            "node": "Check CPF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualiza Dados CPF": {
+      "main": [
+        [
+          {
+            "node": "MERGE_CPF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check CPF": {
+      "main": [
+        [
+          {
+            "node": "Atualiza Dados CPF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Atualiza dados CPF Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualiza dados CPF Erro": {
+      "main": [
+        [
+          {
+            "node": "MERGE_CPF",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "VIVO TOTAL",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRIA LEAD": {
+      "main": [
+        [
+          {
+            "node": "Obtem Order Id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtem Order Id": {
+      "main": [
+        [
+          {
+            "node": "CONSULTA CPF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normaliza API Manager": {
+      "main": [
+        [
+          {
+            "node": "CRIA LEAD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check_CEP": {
+      "main": [
+        [
+          {
+            "node": "CEP_STATUS_SUCESSO",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CEP_STATUS_ERROR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CEP_STATUS_ERROR": {
+      "main": [
+        [
+          {
+            "node": "MERGE_CEP",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "CEP_STATUS_SUCESSO": {
+      "main": [
+        [
+          {
+            "node": "MERGE_CEP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MERGE_CEP": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MERGE_CPF": {
+      "main": [
+        [
+          {
+            "node": "CONSULTA_CEP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA_RESULT_CHECK": {
+      "main": [
+        [
+          {
+            "node": "Normaliza API Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONSULTA_CEP": {
+      "main": [
+        [
+          {
+            "node": "Check_CEP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CHECK_WPP_PRINCIPAL_PHONE": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "wpp_pricipal_result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "wpp_pricipal_result": {
+      "main": [
+        [
+          {
+            "node": "MERGE_WPP_PRINCIPAL",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "WPP_PRINCIPAL_ERROR": {
+      "main": [
+        [
+          {
+            "node": "MERGE_WPP_PRINCIPAL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "WPP_PRINCIPAL_ERROR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "wpp_secondary_result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WPP_PRINCIPAL_ERROR1": {
+      "main": [
+        [
+          {
+            "node": "MERGE_WPP_SECONDARY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [
+          {
+            "node": "WPP_PRINCIPAL_ERROR1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CHECK_WPP_SECUNDARY_PHONE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MERGE_WPP_PRINCIPAL": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "wpp_secondary_result": {
+      "main": [
+        [
+          {
+            "node": "MERGE_WPP_SECONDARY",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "CHECK_WPP_SECUNDARY_PHONE": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MERGE_WPP_SECONDARY": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "dados normalizados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VIVO FIBRA": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "VIVO FIBRA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normaliza notas": {
+      "main": [
+        [
+          {
+            "node": "atualiza notas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "normaliza final": {
+      "main": [
+        [
+          {
+            "node": "CRIA LEAD2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dados normalizados": {
+      "main": [
+        [
+          {
+            "node": "normaliza notas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "atualiza notas": {
+      "main": [
+        [
+          {
+            "node": "normaliza final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRIA LEAD2": {
+      "main": [
+        [
+          {
+            "node": "ATUALIZA SP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11LabsConversation": {
+      "main": [
+        [
+          {
+            "node": "VIVO TOTAL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ATUALIZA SP": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "WPP_PRINCIPAL_ERROR",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CHECK_WPP_PRINCIPAL_PHONE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bff0993b-71c1-4c63-bc45-6cf8c9ac5ada",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c7d12b09f7706ff13009ec9c6baf8680ad3a1b952a3a4f5ec8ce77a4c9cd6936"
+  },
+  "id": "y4OrbsIkg096AOXh",
+  "tags": []
+}

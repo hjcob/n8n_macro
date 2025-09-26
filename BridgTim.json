@@ -1,0 +1,111 @@
+{
+  "name": "BridgTim",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3DBBF736980A4074E2FD9619DC6ED8C5/token/F8389CBAD1D80C0EB04EE8AE/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "client-token",
+              "value": "F8839695cbcb04b038ab9b53c607eb698S"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"phone\": \"120363385792520544-group\",\n  \"message\": \"\\r\\n *ATENÇÃO* \\r\\n \\r\\n  *Serviço: BRIDGE da TIM*  \\r\\n \\r\\n está fora do AR  Método de teste por PING.\"\n\n}",
+        "options": {}
+      },
+      "id": "f31b6d3f-e59f-4a3b-b338-4666582890b7",
+      "name": "Envia Texto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3DBBF736980A4074E2FD9619DC6ED8C5/token/F8389CBAD1D80C0EB04EE8AE/send-image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "client-token",
+              "value": "F8839695cbcb04b038ab9b53c607eb698S"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"phone\": \"120363385792520544-group\",\n  \"image\": \"https://www.educacaofisica.ufscar.br/graduacao/bacharelado/gif-atencao-animado/@@images/image.gif\",\n  \"caption\": \"Atenção Alerta\",\n  \"viewOnce\": false\n}",
+        "options": {}
+      },
+      "id": "c8863a5b-6d3e-4747-9ab5-293bbb7d2d61",
+      "name": "Envia Imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bfd1aea2-dd67-4c3a-801e-55d103d5d2db/bridge-tim",
+        "options": {}
+      },
+      "id": "e1fed917-13af-4498-99b5-dfec1ac9f950",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        560
+      ],
+      "webhookId": "50ca3a2e-8b1b-4482-83d0-58230fed3f9e"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Envia Imagem": {
+      "main": [
+        [
+          {
+            "node": "Envia Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Envia Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ab9a87a8-c81b-4d0c-9a81-9a3a8926449a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c7d12b09f7706ff13009ec9c6baf8680ad3a1b952a3a4f5ec8ce77a4c9cd6936"
+  },
+  "id": "R0jPuv6sopDFsMLj",
+  "tags": []
+}

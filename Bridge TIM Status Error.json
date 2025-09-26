@@ -1,0 +1,111 @@
+{
+  "name": "Bridge TIM Status Error",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3E34E1B7B7E9705052442A88B4975A95/token/50F373DCEF3B7A6A8F056414/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "client-token",
+              "value": "F0ee7a306027b442bbbe560ce18825a62S"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"phone\": \"120363385792520544-group\",\n  \"message\": \"\\r\\n *Se Liga* \\r\\n \\r\\n  *Serviço: Motor Risco da TIM*  \\r\\n \\r\\n Está com erro de Status Code\"\n\n}",
+        "options": {}
+      },
+      "id": "fb3fbbe9-47b4-4d76-bbee-c1e527b707cb",
+      "name": "Envia Texto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3E34E1B7B7E9705052442A88B4975A95/token/50F373DCEF3B7A6A8F056414/send-image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "client-token",
+              "value": "F0ee7a306027b442bbbe560ce18825a62S"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"phone\": \"120363385792520544-group\",\n  \"image\": \"https://gifmania.com.br/wp-content/uploads/2020/11/se_liga.gif\",\n  \"caption\": \"Se Liga\",\n  \"viewOnce\": false\n}",
+        "options": {}
+      },
+      "id": "0ae7a6b5-b7c4-41be-a02f-13a8b02c502f",
+      "name": "Envia Imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "50ca3a2e-8b1b-4482-83d0-58230fed3f9e/Bridge/ServerError",
+        "options": {}
+      },
+      "id": "2648eb7c-76f9-45dd-a5d0-a5de39072541",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        560
+      ],
+      "webhookId": "bfd1aea2-dd67-4c3a-801e-55d103d5d2db"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Envia Imagem": {
+      "main": [
+        [
+          {
+            "node": "Envia Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Envia Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "66225e55-74f5-45be-aca3-d1e6d3b27683",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c7d12b09f7706ff13009ec9c6baf8680ad3a1b952a3a4f5ec8ce77a4c9cd6936"
+  },
+  "id": "8qtA16zJa9W3WmUH",
+  "tags": []
+}

@@ -1,0 +1,225 @@
+{
+  "name": "EAF CLEANING",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -528,
+        -32
+      ],
+      "id": "b6bbf390-622c-4ab5-a4eb-2664069751f2",
+      "name": "Schedule Trigger",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api-eaf.azurewebsites.net/Bridge/deletelog/maqpQ0VQAdhakRc0Fg478842mNp7KCw/2500",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "*/*"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        256,
+        -48
+      ],
+      "id": "963ac143-b8da-49a3-b1b9-e1b86a11fc4e",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Função para verificar se a janela está ativa\nfunction verificaJanelaAtiva() {\n    const nowUTC = new Date();\n    const nowUTCMinus3 = new Date(nowUTC.getTime() - 3 * 60 * 60 * 1000);\n    const hours = nowUTCMinus3.getHours();\n    const minutes = nowUTCMinus3.getMinutes();\n\n    const janelaAtiva = (      \n        (hours > 0 && hours < 5)         \n    );\n\n    return janelaAtiva;\n}\n\n// Atribuir o resultado da função à variável `janelaAtiva`\nconst janelaAtiva = verificaJanelaAtiva();\n\n// Retorna o valor para o fluxo do n8n\nreturn {\n    janelaAtiva\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        -32
+      ],
+      "id": "91ac0de4-6eb8-4ff0-91c1-0837f5795236",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4f7c4b9a-183f-4fba-8236-20d403f96845",
+              "leftValue": "={{ $json.janelaAtiva }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        -32
+      ],
+      "id": "4fd57de4-4b54-43c9-9d95-74c925abbd18",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        160
+      ],
+      "id": "d25ff0e2-efe1-4a79-a108-743325864fc8",
+      "name": "Wait",
+      "webhookId": "d28f0005-e50c-4077-9840-29e68c305c40"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "515b5c13-0823-4da9-9d73-4fe00ea2dee8",
+              "leftValue": "={{ $json.valor }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        576,
+        -48
+      ],
+      "id": "28b03139-521e-4ed9-b9bf-a5d3df00c991",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5898e4c7-97ba-45e6-b05e-db8555c4b361",
+  "meta": {
+    "instanceId": "c7d12b09f7706ff13009ec9c6baf8680ad3a1b952a3a4f5ec8ce77a4c9cd6936"
+  },
+  "id": "h39riBIaoVeSo9qq",
+  "tags": []
+}

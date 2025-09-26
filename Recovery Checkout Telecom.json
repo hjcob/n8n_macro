@@ -1,0 +1,64 @@
+{
+  "name": "Recovery Checkout Telecom",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "e6890d3d-e5db-41bf-a058-96da00c47e8d",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://apimanager-prod.azurewebsites.net/RecoveryOrdersTelecom/vGwKTvXEwBy4nL2UQCNr",
+        "options": {}
+      },
+      "id": "b424fd46-a885-49a1-a922-e8b9b8ae02ab",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1024,
+        544
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d3ac1dfe-6439-4389-809f-9aae43cb9d3c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c7d12b09f7706ff13009ec9c6baf8680ad3a1b952a3a4f5ec8ce77a4c9cd6936"
+  },
+  "id": "u0h6sRyXnlH7HW9n",
+  "tags": []
+}
