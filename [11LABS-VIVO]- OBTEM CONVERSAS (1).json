@@ -1,0 +1,200 @@
+{
+  "name": "[11LABS-VIVO]- OBTEM CONVERSAS",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://apimanager-prod.azurewebsites.net/get/aiVoiceWebhook/r4PGqkW3p0nnXRSntkVG",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "*/*"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        -48
+      ],
+      "id": "0e95ac63-2c5d-405e-8149-a78808fd7bef",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        0,
+        -48
+      ],
+      "id": "960efcae-4b7e-4174-bba8-552c8125a1d6",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "tableId": "CONVERSATIONS",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "conversationId",
+              "fieldValue": "={{ $json.value }}"
+            },
+            {
+              "fieldId": "state",
+              "fieldValue": "queue"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        -128
+      ],
+      "id": "4b7db047-050a-4a16-85ac-c99cb5743057",
+      "name": "Create a row1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "cXdeWXmWkY5vzgPy",
+          "name": "SUPABASE"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 0.1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "d1219805-49a4-433e-bf08-7739a0187822",
+      "name": "Wait1",
+      "webhookId": "437302aa-9af9-4428-86b5-45535a15550c"
+    },
+    {
+      "parameters": {
+        "amount": 0.1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        -48
+      ],
+      "id": "94393260-2f5c-45a2-8273-416446523867",
+      "name": "Wait2",
+      "webhookId": "437302aa-9af9-4428-86b5-45535a15550c"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -432,
+        -48
+      ],
+      "id": "075d7b78-366a-499e-9b21-68f5a973c089",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row1": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Create a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "94b7a54b-870f-43c1-ab28-b1d40bbf5175",
+  "meta": {
+    "instanceId": "c7d12b09f7706ff13009ec9c6baf8680ad3a1b952a3a4f5ec8ce77a4c9cd6936"
+  },
+  "id": "EOhbLhr2r0HqFpGe",
+  "tags": []
+}
